@@ -118,23 +118,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Logging Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure the log settings for your application. Out of
-    | the box, Laravel uses the Monolog PHP logging library. This gives
-    | you a variety of powerful log handlers / formatters to utilize.
-    |
-    | Available Settings: "single", "daily", "syslog", "errorlog"
-    |
-    */
-
-    'log' => env('APP_LOG', 'daily'),
-
-    'log_level' => env('APP_LOG_LEVEL', 'info'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Exception Reporter Configuration
     |--------------------------------------------------------------------------
     |
@@ -183,6 +166,7 @@ return [
         Illuminate\Redis\RedisServiceProvider::class,
         Illuminate\Auth\Passwords\PasswordResetServiceProvider::class,
         Illuminate\Session\SessionServiceProvider::class,
+        Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
 
@@ -191,21 +175,18 @@ return [
          */
         Pterodactyl\Providers\AppServiceProvider::class,
         Pterodactyl\Providers\AuthServiceProvider::class,
+        Pterodactyl\Providers\BackupsServiceProvider::class,
         Pterodactyl\Providers\BladeServiceProvider::class,
         Pterodactyl\Providers\EventServiceProvider::class,
         Pterodactyl\Providers\HashidsServiceProvider::class,
         Pterodactyl\Providers\RouteServiceProvider::class,
-        Pterodactyl\Providers\MacroServiceProvider::class,
-        Pterodactyl\Providers\PhraseAppTranslationProvider::class,
         Pterodactyl\Providers\RepositoryServiceProvider::class,
         Pterodactyl\Providers\ViewComposerServiceProvider::class,
 
         /*
          * Additional Dependencies
          */
-        Igaster\LaravelTheme\themeServiceProvider::class,
         Prologue\Alerts\AlertsServiceProvider::class,
-        Lord\Laroute\LarouteServiceProvider::class,
     ],
 
     /*
@@ -253,7 +234,7 @@ return [
         'Schema' => Illuminate\Support\Facades\Schema::class,
         'Session' => Illuminate\Support\Facades\Session::class,
         'Storage' => Illuminate\Support\Facades\Storage::class,
-        'Theme' => Igaster\LaravelTheme\Facades\Theme::class,
+        'Theme' => Pterodactyl\Extensions\Facades\Theme::class,
         'URL' => Illuminate\Support\Facades\URL::class,
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,

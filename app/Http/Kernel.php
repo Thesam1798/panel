@@ -9,6 +9,7 @@ use Pterodactyl\Http\Middleware\TrimStrings;
 use Pterodactyl\Http\Middleware\TrustProxies;
 use Illuminate\Session\Middleware\StartSession;
 use Pterodactyl\Http\Middleware\EncryptCookies;
+use Pterodactyl\Http\Middleware\Api\IsValidJson;
 use Pterodactyl\Http\Middleware\VerifyCsrfToken;
 use Pterodactyl\Http\Middleware\VerifyReCaptcha;
 use Pterodactyl\Http\Middleware\AdminAuthenticate;
@@ -17,26 +18,23 @@ use Pterodactyl\Http\Middleware\LanguageMiddleware;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Pterodactyl\Http\Middleware\Api\AuthenticateKey;
 use Illuminate\Routing\Middleware\SubstituteBindings;
-use Pterodactyl\Http\Middleware\AccessingValidServer;
 use Pterodactyl\Http\Middleware\Api\SetSessionDriver;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Pterodactyl\Http\Middleware\MaintenanceMiddleware;
 use Pterodactyl\Http\Middleware\RedirectIfAuthenticated;
 use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
 use Pterodactyl\Http\Middleware\Api\AuthenticateIPAccess;
 use Pterodactyl\Http\Middleware\Api\ApiSubstituteBindings;
 use Illuminate\Foundation\Http\Middleware\ValidatePostSize;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Pterodactyl\Http\Middleware\Server\AuthenticateAsSubuser;
+use Pterodactyl\Http\Middleware\Server\AccessingValidServer;
 use Pterodactyl\Http\Middleware\Api\Daemon\DaemonAuthenticate;
-use Pterodactyl\Http\Middleware\Server\SubuserBelongsToServer;
 use Pterodactyl\Http\Middleware\RequireTwoFactorAuthentication;
-use Pterodactyl\Http\Middleware\Server\DatabaseBelongsToServer;
-use Pterodactyl\Http\Middleware\Server\ScheduleBelongsToServer;
 use Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode;
 use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Pterodactyl\Http\Middleware\Api\Client\SubstituteClientApiBindings;
 use Pterodactyl\Http\Middleware\Api\Application\AuthenticateApplicationUser;
-use Pterodactyl\Http\Middleware\DaemonAuthenticate as OldDaemonAuthenticate;
 
 class Kernel extends HttpKernel
 {
@@ -47,6 +45,7 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         CheckForMaintenanceMode::class,
+        EncryptCookies::class,
         ValidatePostSize::class,
         TrimStrings::class,
         ConvertEmptyStringsToNull::class,
@@ -60,9 +59,9 @@ class Kernel extends HttpKernel
      */
     protected $middlewareGroups = [
         'web' => [
-            EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
             StartSession::class,
+            AuthenticateSession::class,
             ShareErrorsFromSession::class,
             VerifyCsrfToken::class,
             SubstituteBindings::class,
@@ -70,7 +69,7 @@ class Kernel extends HttpKernel
             RequireTwoFactorAuthentication::class,
         ],
         'api' => [
-            'throttle:120,1',
+            IsValidJson::class,
             ApiSubstituteBindings::class,
             SetSessionDriver::class,
             'api..key:' . ApiKey::TYPE_APPLICATION,
@@ -78,9 +77,11 @@ class Kernel extends HttpKernel
             AuthenticateIPAccess::class,
         ],
         'client-api' => [
-            'throttle:60,1',
-            SubstituteClientApiBindings::class,
+            StartSession::class,
             SetSessionDriver::class,
+            AuthenticateSession::class,
+            IsValidJson::class,
+            SubstituteClientApiBindings::class,
             'api..key:' . ApiKey::TYPE_ACCOUNT,
             AuthenticateIPAccess::class,
         ],
@@ -100,22 +101,13 @@ class Kernel extends HttpKernel
         'auth.basic' => AuthenticateWithBasicAuth::class,
         'guest' => RedirectIfAuthenticated::class,
         'server' => AccessingValidServer::class,
-        'subuser.auth' => AuthenticateAsSubuser::class,
         'admin' => AdminAuthenticate::class,
-        'daemon-old' => OldDaemonAuthenticate::class,
         'csrf' => VerifyCsrfToken::class,
         'throttle' => ThrottleRequests::class,
         'can' => Authorize::class,
         'bindings' => SubstituteBindings::class,
         'recaptcha' => VerifyReCaptcha::class,
-
-        // Server specific middleware (used for authenticating access to resources)
-        //
-        // These are only used for individual server authentication, and not gloabl
-        // actions from other resources. They are defined in the route files.
-        'server..database' => DatabaseBelongsToServer::class,
-        'server..subuser' => SubuserBelongsToServer::class,
-        'server..schedule' => ScheduleBelongsToServer::class,
+        'node.maintenance' => MaintenanceMiddleware::class,
 
         // API Specific Middleware
         'api..key' => AuthenticateKey::class,

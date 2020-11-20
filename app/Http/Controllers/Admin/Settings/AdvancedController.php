@@ -36,9 +36,9 @@ class AdvancedController extends Controller
     /**
      * AdvancedController constructor.
      *
-     * @param \Prologue\Alerts\AlertsMessageBag                             $alert
-     * @param \Illuminate\Contracts\Config\Repository                       $config
-     * @param \Illuminate\Contracts\Console\Kernel                          $kernel
+     * @param \Prologue\Alerts\AlertsMessageBag $alert
+     * @param \Illuminate\Contracts\Config\Repository $config
+     * @param \Illuminate\Contracts\Console\Kernel $kernel
      * @param \Pterodactyl\Contracts\Repository\SettingsRepositoryInterface $settings
      */
     public function __construct(
@@ -76,6 +76,8 @@ class AdvancedController extends Controller
     /**
      * @param \Pterodactyl\Http\Requests\Admin\Settings\AdvancedSettingsFormRequest $request
      * @return \Illuminate\Http\RedirectResponse
+     * @throws \Pterodactyl\Exceptions\Model\DataValidationException
+     * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
     public function update(AdvancedSettingsFormRequest $request): RedirectResponse
     {

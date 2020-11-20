@@ -21,12 +21,12 @@ class StoreNodeRequest extends ApplicationApiRequest
     /**
      * Validation rules to apply to this request.
      *
-     * @param null|array $rules
+     * @param array|null $rules
      * @return array
      */
     public function rules(array $rules = null): array
     {
-        return collect($rules ?? Node::getCreateRules())->only([
+        return collect($rules ?? Node::getRules())->only([
             'public',
             'name',
             'location_id',
@@ -36,7 +36,7 @@ class StoreNodeRequest extends ApplicationApiRequest
             'memory',
             'memory_overallocate',
             'disk',
-            'disk_overallocation',
+            'disk_overallocate',
             'upload_size',
             'daemonListen',
             'daemonSFTP',
@@ -74,7 +74,7 @@ class StoreNodeRequest extends ApplicationApiRequest
         $response = parent::validated();
         $response['daemonListen'] = $response['daemon_listen'];
         $response['daemonSFTP'] = $response['daemon_sftp'];
-        $response['daemonBase'] = $response['daemon_base'];
+        $response['daemonBase'] = $response['daemon_base'] ?? (new Node)->getAttribute('daemonBase');
 
         unset($response['daemon_base'], $response['daemon_listen'], $response['daemon_sftp']);
 

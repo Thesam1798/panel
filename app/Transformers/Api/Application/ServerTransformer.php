@@ -22,12 +22,12 @@ class ServerTransformer extends BaseTransformer
         'allocations',
         'user',
         'subusers',
-        'pack',
         'nest',
         'egg',
         'variables',
         'location',
         'node',
+        'databases',
     ];
 
     /**
@@ -74,17 +74,18 @@ class ServerTransformer extends BaseTransformer
                 'disk' => $server->disk,
                 'io' => $server->io,
                 'cpu' => $server->cpu,
+                'threads' => $server->threads,
             ],
             'feature_limits' => [
                 'databases' => $server->database_limit,
                 'allocations' => $server->allocation_limit,
+                'backups' => $server->backup_limit,
             ],
             'user' => $server->owner_id,
             'node' => $server->node_id,
             'allocation' => $server->allocation_id,
             'nest' => $server->nest_id,
             'egg' => $server->egg_id,
-            'pack' => $server->pack_id,
             'container' => [
                 'startup_command' => $server->startup,
                 'image' => $server->image,
@@ -131,7 +132,7 @@ class ServerTransformer extends BaseTransformer
 
         $server->loadMissing('subusers');
 
-        return $this->collection($server->getRelation('subusers'), $this->makeTransformer(UserTransformer::class), 'user');
+        return $this->collection($server->getRelation('subusers'), $this->makeTransformer(SubuserTransformer::class), 'subuser');
     }
 
     /**
@@ -154,28 +155,6 @@ class ServerTransformer extends BaseTransformer
     }
 
     /**
-     * Return a generic array with pack information for this server.
-     *
-     * @param \Pterodactyl\Models\Server $server
-     * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
-     *
-     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
-     */
-    public function includePack(Server $server)
-    {
-        if (! $this->authorize(AdminAcl::RESOURCE_PACKS)) {
-            return $this->null();
-        }
-
-        $server->loadMissing('pack');
-        if (is_null($server->getRelation('pack'))) {
-            return $this->null();
-        }
-
-        return $this->item($server->getRelation('pack'), $this->makeTransformer(PackTransformer::class), 'pack');
-    }
-
-    /**
      * Return a generic array with nest information for this server.
      *
      * @param \Pterodactyl\Models\Server $server
@@ -195,14 +174,14 @@ class ServerTransformer extends BaseTransformer
     }
 
     /**
-     * Return a generic array with service option information for this server.
+     * Return a generic array with egg information for this server.
      *
      * @param \Pterodactyl\Models\Server $server
      * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
      *
      * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
-    public function includeOption(Server $server)
+    public function includeEgg(Server $server)
     {
         if (! $this->authorize(AdminAcl::RESOURCE_EGGS)) {
             return $this->null();
@@ -210,7 +189,7 @@ class ServerTransformer extends BaseTransformer
 
         $server->loadMissing('egg');
 
-        return $this->item($server->getRelation('egg'), $this->makeTransformer(EggVariableTransformer::class), 'egg');
+        return $this->item($server->getRelation('egg'), $this->makeTransformer(EggTransformer::class), 'egg');
     }
 
     /**
@@ -233,7 +212,7 @@ class ServerTransformer extends BaseTransformer
     }
 
     /**
-     * Return a generic array with pack information for this server.
+     * Return a generic array with location information for this server.
      *
      * @param \Pterodactyl\Models\Server $server
      * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
@@ -252,7 +231,7 @@ class ServerTransformer extends BaseTransformer
     }
 
     /**
-     * Return a generic array with pack information for this server.
+     * Return a generic array with node information for this server.
      *
      * @param \Pterodactyl\Models\Server $server
      * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
@@ -268,5 +247,24 @@ class ServerTransformer extends BaseTransformer
         $server->loadMissing('node');
 
         return $this->item($server->getRelation('node'), $this->makeTransformer(NodeTransformer::class), 'node');
+    }
+
+    /**
+     * Return a generic array with database information for this server.
+     *
+     * @param \Pterodactyl\Models\Server $server
+     * @return \League\Fractal\Resource\Collection|\League\Fractal\Resource\NullResource
+     *
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
+     */
+    public function includeDatabases(Server $server)
+    {
+        if (! $this->authorize(AdminAcl::RESOURCE_SERVER_DATABASES)) {
+            return $this->null();
+        }
+
+        $server->loadMissing('databases');
+
+        return $this->collection($server->getRelation('databases'), $this->makeTransformer(ServerDatabaseTransformer::class), 'databases');
     }
 }

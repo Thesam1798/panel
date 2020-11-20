@@ -52,7 +52,7 @@ class EggRepository extends EloquentRepository implements EggRepositoryInterface
      * Return an egg with the scriptFrom and configFrom relations loaded onto the model.
      *
      * @param int|string $value
-     * @param string     $column
+     * @param string $column
      * @return \Pterodactyl\Models\Egg
      *
      * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
@@ -92,7 +92,7 @@ class EggRepository extends EloquentRepository implements EggRepositoryInterface
      * @param int $service
      * @return bool
      */
-    public function isCopiableScript(int $copyFromId, int $service): bool
+    public function isCopyableScript(int $copyFromId, int $service): bool
     {
         return $this->getBuilder()->whereNull('copy_script_from')
             ->where('id', '=', $copyFromId)

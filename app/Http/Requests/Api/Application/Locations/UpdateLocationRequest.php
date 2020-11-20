@@ -3,7 +3,6 @@
 namespace Pterodactyl\Http\Requests\Api\Application\Locations;
 
 use Pterodactyl\Models\Location;
-use Pterodactyl\Http\Controllers\Api\Application\Locations\StoreLocationRequest;
 
 class UpdateLocationRequest extends StoreLocationRequest
 {
@@ -20,7 +19,7 @@ class UpdateLocationRequest extends StoreLocationRequest
     }
 
     /**
-     * Rules to validate this request aganist.
+     * Rules to validate this request against.
      *
      * @return array
      */
@@ -28,9 +27,9 @@ class UpdateLocationRequest extends StoreLocationRequest
     {
         $locationId = $this->route()->parameter('location')->id;
 
-        return collect(Location::getUpdateRulesForId($locationId))->only([
+        return collect(Location::getRulesForUpdate($locationId))->only([
             'short',
             'long',
-        ]);
+        ])->toArray();
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+use Pterodactyl\Helpers\Time;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -34,6 +36,7 @@ return [
         'mysql' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
+            'unix_socket' => env('DB_SOCKET'),
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'panel'),
             'username' => env('DB_USERNAME', 'pterodactyl'),
@@ -42,6 +45,7 @@ return [
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => env('DB_PREFIX', ''),
             'strict' => env('DB_STRICT_MODE', false),
+            'timezone' => env('DB_TIMEZONE', Time::getMySQLTimezoneOffset(env('APP_TIMEZONE')))
         ],
 
         /*
@@ -64,6 +68,7 @@ return [
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
             'strict' => false,
+            'timezone' => env('DB_TIMEZONE', Time::getMySQLTimezoneOffset(env('APP_TIMEZONE')))
         ],
     ],
 
@@ -95,17 +100,21 @@ return [
         'client' => 'predis',
 
         'default' => [
+            'scheme' => env('REDIS_SCHEME', 'tcp'),
+            'path' => env('REDIS_PATH', '/run/redis/redis.sock'),
             'host' => env('REDIS_HOST', 'localhost'),
             'password' => env('REDIS_PASSWORD', null),
             'port' => env('REDIS_PORT', 6379),
-            'database' => env('REDIS_DATBASE', 0),
+            'database' => env('REDIS_DATABASE', 0),
         ],
 
         'sessions' => [
+            'scheme' => env('REDIS_SCHEME', 'tcp'),
+            'path' => env('REDIS_PATH', '/run/redis/redis.sock'),
             'host' => env('REDIS_HOST', 'localhost'),
             'password' => env('REDIS_PASSWORD', null),
             'port' => env('REDIS_PORT', 6379),
-            'database' => env('REDIS_DATBASE_SESSIONS', 1),
+            'database' => env('REDIS_DATABASE_SESSIONS', 1),
         ],
     ],
 ];

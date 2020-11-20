@@ -8,7 +8,7 @@ use Pterodactyl\Http\Requests\Admin\AdminFormRequest;
 class MailSettingsFormRequest extends AdminFormRequest
 {
     /**
-     * Return rules to validate mail settings POST data aganist.
+     * Return rules to validate mail settings POST data against.
      *
      * @return array
      */
@@ -18,10 +18,10 @@ class MailSettingsFormRequest extends AdminFormRequest
             'mail:host' => 'required|string',
             'mail:port' => 'required|integer|between:1,65535',
             'mail:encryption' => ['present', Rule::in([null, 'tls', 'ssl'])],
-            'mail:username' => 'nullable|string|max:255',
-            'mail:password' => 'nullable|string|max:255',
+            'mail:username' => 'nullable|string|max:191',
+            'mail:password' => 'nullable|string|max:191',
             'mail:from:address' => 'required|string|email',
-            'mail:from:name' => 'nullable|string|max:255',
+            'mail:from:name' => 'nullable|string|max:191',
         ];
     }
 

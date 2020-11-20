@@ -2,7 +2,7 @@
 
 namespace Pterodactyl\Providers;
 
-use Illuminate\Contracts\Logging\Log;
+use Psr\Log\LoggerInterface as Log;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Encryption\Encrypter;
@@ -21,6 +21,7 @@ class SettingsServiceProvider extends ServiceProvider
     protected $keys = [
         'app:name',
         'app:locale',
+        'app:analytics',
         'recaptcha:enabled',
         'recaptcha:secret_key',
         'recaptcha:website_key',
@@ -29,6 +30,9 @@ class SettingsServiceProvider extends ServiceProvider
         'pterodactyl:console:count',
         'pterodactyl:console:frequency',
         'pterodactyl:auth:2fa_required',
+        'pterodactyl:client_features:allocations:enabled',
+        'pterodactyl:client_features:allocations:range_start',
+        'pterodactyl:client_features:allocations:range_end',
     ];
 
     /**
@@ -60,9 +64,9 @@ class SettingsServiceProvider extends ServiceProvider
     /**
      * Boot the service provider.
      *
-     * @param \Illuminate\Contracts\Config\Repository                       $config
-     * @param \Illuminate\Contracts\Encryption\Encrypter                    $encrypter
-     * @param \Illuminate\Contracts\Logging\Log                             $log
+     * @param \Illuminate\Contracts\Config\Repository $config
+     * @param \Illuminate\Contracts\Encryption\Encrypter $encrypter
+     * @param \Psr\Log\LoggerInterface $log
      * @param \Pterodactyl\Contracts\Repository\SettingsRepositoryInterface $settings
      */
     public function boot(ConfigRepository $config, Encrypter $encrypter, Log $log, SettingsRepositoryInterface $settings)
@@ -78,7 +82,7 @@ class SettingsServiceProvider extends ServiceProvider
                 return [$setting->key => $setting->value];
             })->toArray();
         } catch (QueryException $exception) {
-            $log->notice('A query exception was encountered while trying to load settings from the database.');
+            $log->notice('A query exception was encountered while trying to load settings from the database: ' . $exception->getMessage());
 
             return;
         }

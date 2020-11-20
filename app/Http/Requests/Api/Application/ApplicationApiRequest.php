@@ -38,7 +38,7 @@ abstract class ApplicationApiRequest extends FormRequest
 
     /**
      * Determine if the current user is authorized to perform
-     * the requested action aganist the API.
+     * the requested action against the API.
      *
      * @return bool
      *
@@ -89,6 +89,7 @@ abstract class ApplicationApiRequest extends FormRequest
      *
      * @param string $model
      * @return mixed
+     * @deprecated
      *
      * @throws \Symfony\Component\Routing\Exception\InvalidParameterException
      */
@@ -125,10 +126,6 @@ abstract class ApplicationApiRequest extends FormRequest
      * @return bool
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
-     */
-
-    /**
-     * @return bool
      */
     protected function passesAuthorization()
     {

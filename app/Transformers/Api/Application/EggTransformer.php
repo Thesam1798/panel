@@ -41,6 +41,7 @@ class EggTransformer extends BaseTransformer
         return [
             'id' => $model->id,
             'uuid' => $model->uuid,
+            'name' => $model->name,
             'nest' => $model->nest_id,
             'author' => $model->author,
             'description' => $model->description,
@@ -70,6 +71,7 @@ class EggTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Egg $model
      * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeNest(Egg $model)
     {
@@ -87,6 +89,7 @@ class EggTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Egg $model
      * @return \League\Fractal\Resource\Collection|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeServers(Egg $model)
     {
@@ -154,6 +157,7 @@ class EggTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Egg $model
      * @return \League\Fractal\Resource\Collection|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeVariables(Egg $model)
     {

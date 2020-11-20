@@ -2,18 +2,59 @@
 
 namespace Pterodactyl\Models;
 
-use Schema;
-use Sofa\Eloquence\Eloquence;
-use Sofa\Eloquence\Validable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Query\JoinClause;
 use Znck\Eloquent\Traits\BelongsToThrough;
-use Sofa\Eloquence\Contracts\CleansAttributes;
-use Sofa\Eloquence\Contracts\Validable as ValidableContract;
 
-class Server extends Model implements CleansAttributes, ValidableContract
+/**
+ * @property int $id
+ * @property string|null $external_id
+ * @property string $uuid
+ * @property string $uuidShort
+ * @property int $node_id
+ * @property string $name
+ * @property string $description
+ * @property bool $skip_scripts
+ * @property bool $suspended
+ * @property int $owner_id
+ * @property int $memory
+ * @property int $swap
+ * @property int $disk
+ * @property int $io
+ * @property int $cpu
+ * @property string $threads
+ * @property bool $oom_disabled
+ * @property int $allocation_id
+ * @property int $nest_id
+ * @property int $egg_id
+ * @property string $startup
+ * @property string $image
+ * @property int $installed
+ * @property int $allocation_limit
+ * @property int $database_limit
+ * @property int $backup_limit
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ *
+ * @property \Pterodactyl\Models\User $user
+ * @property \Pterodactyl\Models\Subuser[]|\Illuminate\Database\Eloquent\Collection $subusers
+ * @property \Pterodactyl\Models\Allocation $allocation
+ * @property \Pterodactyl\Models\Allocation[]|\Illuminate\Database\Eloquent\Collection $allocations
+ * @property \Pterodactyl\Models\Node $node
+ * @property \Pterodactyl\Models\Nest $nest
+ * @property \Pterodactyl\Models\Egg $egg
+ * @property \Pterodactyl\Models\EggVariable[]|\Illuminate\Database\Eloquent\Collection $variables
+ * @property \Pterodactyl\Models\Schedule[]|\Illuminate\Database\Eloquent\Collection $schedule
+ * @property \Pterodactyl\Models\Database[]|\Illuminate\Database\Eloquent\Collection $databases
+ * @property \Pterodactyl\Models\Location $location
+ * @property \Pterodactyl\Models\ServerTransfer $transfer
+ * @property \Pterodactyl\Models\Backup[]|\Illuminate\Database\Eloquent\Collection $backups
+ * @property \Pterodactyl\Models\Mount[]|\Illuminate\Database\Eloquent\Collection $mounts
+ */
+class Server extends Model
 {
-    use BelongsToThrough, Eloquence, Notifiable, Validable;
+    use BelongsToThrough;
+    use Notifiable;
 
     /**
      * The resource name for this model when it is transformed into an
@@ -21,12 +62,33 @@ class Server extends Model implements CleansAttributes, ValidableContract
      */
     const RESOURCE_NAME = 'server';
 
+    const STATUS_INSTALLING = 0;
+    const STATUS_INSTALLED = 1;
+    const STATUS_INSTALL_FAILED = 2;
+
     /**
      * The table associated with the model.
      *
      * @var string
      */
     protected $table = 'servers';
+
+    /**
+     * Default values when creating the model. We want to switch to disabling OOM killer
+     * on server instances unless the user specifies otherwise in the request.
+     *
+     * @var array
+     */
+    protected $attributes = [
+        'oom_disabled' => true,
+    ];
+
+    /**
+     * The default relationships to load for all server models.
+     *
+     * @var string[]
+     */
+    protected $with = ['allocation'];
 
     /**
      * The attributes that should be mutated to dates.
@@ -45,51 +107,29 @@ class Server extends Model implements CleansAttributes, ValidableContract
     /**
      * @var array
      */
-    protected static $applicationRules = [
-        'external_id' => 'sometimes',
-        'owner_id' => 'required',
-        'name' => 'required',
-        'memory' => 'required',
-        'swap' => 'required',
-        'io' => 'required',
-        'cpu' => 'required',
-        'disk' => 'required',
-        'nest_id' => 'required',
-        'egg_id' => 'required',
-        'node_id' => 'required',
-        'allocation_id' => 'required',
-        'pack_id' => 'sometimes',
-        'skip_scripts' => 'sometimes',
-        'image' => 'required',
-        'startup' => 'required',
-        'database_limit' => 'present',
-        'allocation_limit' => 'present',
-    ];
-
-    /**
-     * @var array
-     */
-    protected static $dataIntegrityRules = [
-        'external_id' => 'nullable|string|between:1,191|unique:servers',
-        'owner_id' => 'integer|exists:users,id',
-        'name' => 'string|min:1|max:255',
-        'node_id' => 'exists:nodes,id',
+    public static $validationRules = [
+        'external_id' => 'sometimes|nullable|string|between:1,191|unique:servers',
+        'owner_id' => 'required|integer|exists:users,id',
+        'name' => 'required|string|min:1|max:191',
+        'node_id' => 'required|exists:nodes,id',
         'description' => 'string',
-        'memory' => 'numeric|min:0',
-        'swap' => 'numeric|min:-1',
-        'io' => 'numeric|between:10,1000',
-        'cpu' => 'numeric|min:0',
-        'disk' => 'numeric|min:0',
-        'allocation_id' => 'bail|unique:servers|exists:allocations,id',
-        'nest_id' => 'exists:nests,id',
-        'egg_id' => 'exists:eggs,id',
-        'pack_id' => 'nullable|numeric|min:0',
-        'startup' => 'string',
-        'skip_scripts' => 'boolean',
-        'image' => 'string|max:255',
-        'installed' => 'boolean',
-        'database_limit' => 'nullable|integer|min:0',
-        'allocation_limit' => 'nullable|integer|min:0',
+        'memory' => 'required|numeric|min:0',
+        'swap' => 'required|numeric|min:-1',
+        'io' => 'required|numeric|between:10,1000',
+        'cpu' => 'required|numeric|min:0',
+        'threads' => 'nullable|regex:/^[0-9-,]+$/',
+        'oom_disabled' => 'sometimes|boolean',
+        'disk' => 'required|numeric|min:0',
+        'allocation_id' => 'required|bail|unique:servers|exists:allocations,id',
+        'nest_id' => 'required|exists:nests,id',
+        'egg_id' => 'required|exists:eggs,id',
+        'startup' => 'required|string',
+        'skip_scripts' => 'sometimes|boolean',
+        'image' => 'required|string|max:191',
+        'installed' => 'in:0,1,2',
+        'database_limit' => 'present|nullable|integer|min:0',
+        'allocation_limit' => 'sometimes|nullable|integer|min:0',
+        'backup_limit' => 'present|nullable|integer|min:0',
     ];
 
     /**
@@ -100,47 +140,41 @@ class Server extends Model implements CleansAttributes, ValidableContract
     protected $casts = [
         'node_id' => 'integer',
         'skip_scripts' => 'boolean',
-        'suspended' => 'integer',
+        'suspended' => 'boolean',
         'owner_id' => 'integer',
         'memory' => 'integer',
         'swap' => 'integer',
         'disk' => 'integer',
         'io' => 'integer',
         'cpu' => 'integer',
-        'oom_disabled' => 'integer',
+        'oom_disabled' => 'boolean',
         'allocation_id' => 'integer',
         'nest_id' => 'integer',
         'egg_id' => 'integer',
-        'pack_id' => 'integer',
         'installed' => 'integer',
         'database_limit' => 'integer',
         'allocation_limit' => 'integer',
+        'backup_limit' => 'integer',
     ];
 
     /**
-     * Parameters for search querying.
-     *
-     * @var array
-     */
-    protected $searchableColumns = [
-        'name' => 100,
-        'uuid' => 80,
-        'uuidShort' => 80,
-        'external_id' => 50,
-        'user.email' => 40,
-        'user.username' => 30,
-        'node.name' => 10,
-        'pack.name' => 10,
-    ];
-
-    /**
-     * Return the columns available for this table.
+     * Returns the format for server allocations when communicating with the Daemon.
      *
      * @return array
      */
-    public function getTableColumns()
+    public function getAllocationMappings(): array
     {
-        return Schema::getColumnListing($this->getTable());
+        return $this->allocations->where('node_id', $this->node_id)->groupBy('ip')->map(function ($item) {
+            return $item->pluck('port');
+        })->toArray();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isInstalled(): bool
+    {
+        return $this->installed === 1;
     }
 
     /**
@@ -160,7 +194,7 @@ class Server extends Model implements CleansAttributes, ValidableContract
      */
     public function subusers()
     {
-        return $this->hasMany(Subuser::class);
+        return $this->hasMany(Subuser::class, 'server_id', 'id');
     }
 
     /**
@@ -184,16 +218,6 @@ class Server extends Model implements CleansAttributes, ValidableContract
     }
 
     /**
-     * Gets information for the pack associated with this server.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function pack()
-    {
-        return $this->belongsTo(Pack::class);
-    }
-
-    /**
      * Gets information for the nest associated with this server.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -206,11 +230,11 @@ class Server extends Model implements CleansAttributes, ValidableContract
     /**
      * Gets information for the egg associated with this server.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function egg()
     {
-        return $this->belongsTo(Egg::class);
+        return $this->hasOne(Egg::class, 'id', 'egg_id');
     }
 
     /**
@@ -220,7 +244,17 @@ class Server extends Model implements CleansAttributes, ValidableContract
      */
     public function variables()
     {
-        return $this->hasMany(ServerVariable::class);
+        return $this->hasMany(EggVariable::class, 'egg_id', 'egg_id')
+            ->select(['egg_variables.*', 'server_variables.variable_value as server_value'])
+            ->leftJoin('server_variables', function (JoinClause $join) {
+                // Don't forget to join against the server ID as well since the way we're using this relationship
+                // would actually return all of the variables and their values for _all_ servers using that egg,\
+                // rather than only the server for this model.
+                //
+                // @see https://github.com/pterodactyl/panel/issues/2250
+                $join->on('server_variables.variable_id', 'egg_variables.id')
+                    ->where('server_variables.server_id', $this->id);
+            });
     }
 
     /**
@@ -266,22 +300,30 @@ class Server extends Model implements CleansAttributes, ValidableContract
     }
 
     /**
-     * Return the key belonging to the server owner.
+     * Returns the associated server transfer.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
-    public function key()
+    public function transfer()
     {
-        return $this->hasOne(DaemonKey::class, 'user_id', 'owner_id');
+        return $this->hasOne(ServerTransfer::class)->orderByDesc('id');
     }
 
     /**
-     * Returns all of the daemon keys belonging to this server.
-     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function keys()
+    public function backups()
     {
-        return $this->hasMany(DaemonKey::class);
+        return $this->hasMany(Backup::class);
+    }
+
+    /**
+     * Returns all mounts that have this server has mounted.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough
+     */
+    public function mounts()
+    {
+        return $this->hasManyThrough(Mount::class, MountServer::class, 'server_id', 'id', 'id', 'mount_id');
     }
 }

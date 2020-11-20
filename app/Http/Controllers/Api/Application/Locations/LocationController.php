@@ -5,13 +5,16 @@ namespace Pterodactyl\Http\Controllers\Api\Application\Locations;
 use Illuminate\Http\Response;
 use Pterodactyl\Models\Location;
 use Illuminate\Http\JsonResponse;
+use Spatie\QueryBuilder\QueryBuilder;
 use Pterodactyl\Services\Locations\LocationUpdateService;
 use Pterodactyl\Services\Locations\LocationCreationService;
 use Pterodactyl\Services\Locations\LocationDeletionService;
 use Pterodactyl\Contracts\Repository\LocationRepositoryInterface;
 use Pterodactyl\Transformers\Api\Application\LocationTransformer;
 use Pterodactyl\Http\Controllers\Api\Application\ApplicationApiController;
+use Pterodactyl\Http\Requests\Api\Application\Locations\GetLocationRequest;
 use Pterodactyl\Http\Requests\Api\Application\Locations\GetLocationsRequest;
+use Pterodactyl\Http\Requests\Api\Application\Locations\StoreLocationRequest;
 use Pterodactyl\Http\Requests\Api\Application\Locations\DeleteLocationRequest;
 use Pterodactyl\Http\Requests\Api\Application\Locations\UpdateLocationRequest;
 
@@ -40,10 +43,10 @@ class LocationController extends ApplicationApiController
     /**
      * LocationController constructor.
      *
-     * @param \Pterodactyl\Services\Locations\LocationCreationService       $creationService
-     * @param \Pterodactyl\Services\Locations\LocationDeletionService       $deletionService
+     * @param \Pterodactyl\Services\Locations\LocationCreationService $creationService
+     * @param \Pterodactyl\Services\Locations\LocationDeletionService $deletionService
      * @param \Pterodactyl\Contracts\Repository\LocationRepositoryInterface $repository
-     * @param \Pterodactyl\Services\Locations\LocationUpdateService         $updateService
+     * @param \Pterodactyl\Services\Locations\LocationUpdateService $updateService
      */
     public function __construct(
         LocationCreationService $creationService,
@@ -67,7 +70,10 @@ class LocationController extends ApplicationApiController
      */
     public function index(GetLocationsRequest $request): array
     {
-        $locations = $this->repository->setSearchTerm($request->input('search'))->paginated(50);
+        $locations = QueryBuilder::for(Location::query())
+            ->allowedFilters(['short', 'long'])
+            ->allowedSorts(['id'])
+            ->paginate(100);
 
         return $this->fractal->collection($locations)
             ->transformWith($this->getTransformer(LocationTransformer::class))
@@ -77,7 +83,7 @@ class LocationController extends ApplicationApiController
     /**
      * Return a single location.
      *
-     * @param \Pterodactyl\Http\Controllers\Api\Application\Locations\GetLocationRequest $request
+     * @param \Pterodactyl\Http\Requests\Api\Application\Locations\GetLocationRequest $request
      * @return array
      */
     public function view(GetLocationRequest $request): array
@@ -91,7 +97,7 @@ class LocationController extends ApplicationApiController
      * Store a new location on the Panel and return a HTTP/201 response code with the
      * new location attached.
      *
-     * @param \Pterodactyl\Http\Controllers\Api\Application\Locations\StoreLocationRequest $request
+     * @param \Pterodactyl\Http\Requests\Api\Application\Locations\StoreLocationRequest $request
      * @return \Illuminate\Http\JsonResponse
      *
      * @throws \Pterodactyl\Exceptions\Model\DataValidationException

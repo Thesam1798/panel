@@ -44,6 +44,13 @@ class NodeTransformer extends BaseTransformer
         $response[$node->getUpdatedAtColumn()] = $this->formatTimestamp($node->updated_at);
         $response[$node->getCreatedAtColumn()] = $this->formatTimestamp($node->created_at);
 
+        $resources = $node->servers()->select(['memory', 'disk'])->get();
+
+        $response['allocated_resources'] = [
+            'memory' => $resources->sum('memory'),
+            'disk' => $resources->sum('disk'),
+        ];
+
         return $response;
     }
 
@@ -52,6 +59,7 @@ class NodeTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Node $node
      * @return \League\Fractal\Resource\Collection|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeAllocations(Node $node)
     {
@@ -71,6 +79,7 @@ class NodeTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Node $node
      * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeLocation(Node $node)
     {
@@ -90,6 +99,7 @@ class NodeTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Node $node
      * @return \League\Fractal\Resource\Collection|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeServers(Node $node)
     {

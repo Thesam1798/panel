@@ -27,7 +27,7 @@ class KeyCreationService
      * ApiKeyService constructor.
      *
      * @param \Pterodactyl\Contracts\Repository\ApiKeyRepositoryInterface $repository
-     * @param \Illuminate\Contracts\Encryption\Encrypter                  $encrypter
+     * @param \Illuminate\Contracts\Encryption\Encrypter $encrypter
      */
     public function __construct(ApiKeyRepositoryInterface $repository, Encrypter $encrypter)
     {
@@ -51,7 +51,7 @@ class KeyCreationService
 
     /**
      * Create a new API key for the Panel using the permissions passed in the data request.
-     * This will automatically generate an identifer and an encrypted token that are
+     * This will automatically generate an identifier and an encrypted token that are
      * stored in the database.
      *
      * @param array $data
@@ -72,8 +72,6 @@ class KeyCreationService
             $data = array_merge($data, $permissions);
         }
 
-        $instance = $this->repository->create($data, true, true);
-
-        return $instance;
+        return $this->repository->create($data, true, true);
     }
 }

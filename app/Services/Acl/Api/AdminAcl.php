@@ -9,9 +9,9 @@ class AdminAcl
 {
     /**
      * Resource permission columns in the api_keys table begin
-     * with this identifer.
+     * with this identifier.
      */
-    const COLUMN_IDENTIFER = 'r_';
+    const COLUMN_IDENTIFIER = 'r_';
 
     /**
      * The different types of permissions available for API keys. This
@@ -34,7 +34,6 @@ class AdminAcl
     const RESOURCE_EGGS = 'eggs';
     const RESOURCE_DATABASE_HOSTS = 'database_hosts';
     const RESOURCE_SERVER_DATABASES = 'server_databases';
-    const RESOURCE_PACKS = 'packs';
 
     /**
      * Determine if an API key has permission to perform a specific read/write operation.
@@ -57,19 +56,20 @@ class AdminAcl
      * at a specific action level.
      *
      * @param \Pterodactyl\Models\ApiKey $key
-     * @param string                     $resource
-     * @param int                        $action
+     * @param string $resource
+     * @param int $action
      * @return bool
      */
     public static function check(ApiKey $key, string $resource, int $action = self::READ)
     {
-        return self::can(data_get($key, self::COLUMN_IDENTIFER . $resource, self::NONE), $action);
+        return self::can(data_get($key, self::COLUMN_IDENTIFIER . $resource, self::NONE), $action);
     }
 
     /**
      * Return a list of all resource constants defined in this ACL.
      *
      * @return array
+     * @throws \ReflectionException
      */
     public static function getResourceList(): array
     {

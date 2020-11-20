@@ -56,6 +56,7 @@ class ServerDatabaseTransformer extends BaseTransformer
             'database' => $model->database,
             'username' => $model->username,
             'remote' => $model->remote,
+            'max_connections' => $model->max_connections,
             'created_at' => Chronos::createFromFormat(Chronos::DEFAULT_TO_STRING_FORMAT, $model->created_at)
                 ->setTimezone(config('app.timezone'))
                 ->toIso8601String(),
@@ -85,6 +86,7 @@ class ServerDatabaseTransformer extends BaseTransformer
      *
      * @param \Pterodactyl\Models\Database $model
      * @return \League\Fractal\Resource\Item|\League\Fractal\Resource\NullResource
+     * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
      */
     public function includeHost(Database $model)
     {

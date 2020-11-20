@@ -3,9 +3,12 @@
 namespace Pterodactyl\Exceptions;
 
 use Exception;
+use Throwable;
 use PDOException;
 use Psr\Log\LoggerInterface;
+use Swift_TransportException;
 use Illuminate\Container\Container;
+use Illuminate\Database\Connection;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +17,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Pterodactyl\Exceptions\Repository\RecordNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class Handler extends ExceptionHandler
 {
@@ -47,6 +51,7 @@ class Handler extends ExceptionHandler
      */
     protected $cleanStacks = [
         PDOException::class,
+        Swift_TransportException::class,
     ];
 
     /**
@@ -69,12 +74,12 @@ class Handler extends ExceptionHandler
      * services such as AWS Cloudwatch or other monitoring you can replace the
      * contents of this function with a call to the parent reporter.
      *
-     * @param \Exception $exception
+     * @param \Throwable $exception
      * @return mixed
      *
-     * @throws \Exception
+     * @throws \Throwable
      */
-    public function report(Exception $exception)
+    public function report(Throwable $exception)
     {
         if (! config('app.exceptions.report_all', false) && $this->shouldntReport($exception)) {
             return null;
@@ -100,7 +105,7 @@ class Handler extends ExceptionHandler
         return $logger->error($exception);
     }
 
-    private function generateCleanedExceptionStack(Exception $exception)
+    private function generateCleanedExceptionStack(Throwable $exception)
     {
         $cleanedStack = '';
         foreach ($exception->getTrace() as $index => $item) {
@@ -130,13 +135,28 @@ class Handler extends ExceptionHandler
      * Render an exception into an HTTP response.
      *
      * @param \Illuminate\Http\Request $request
-     * @param \Exception               $exception
+     * @param \Throwable $exception
      * @return \Symfony\Component\HttpFoundation\Response
      *
-     * @throws \Exception
+     * @throws \Throwable
      */
-    public function render($request, Exception $exception)
+    public function render($request, Throwable $exception)
     {
+        $connections = Container::getInstance()->make(Connection::class);
+
+        // If we are currently wrapped up inside a transaction, we will roll all the way
+        // back to the beginning. This needs to happen, otherwise session data does not
+        // get properly persisted.
+        //
+        // This is kind of a hack, and ideally things like this should be handled as
+        // much as possible at the code level, but there are a lot of spots that do a
+        // ton of actions and were written before this bug discovery was made.
+        //
+        // @see https://github.com/pterodactyl/panel/pull/1468
+        if ($connections->transactionLevel()) {
+            $connections->rollBack(0);
+        }
+
         return parent::render($request, $exception);
     }
 
@@ -144,7 +164,7 @@ class Handler extends ExceptionHandler
      * Transform a validation exception into a consistent format to be returned for
      * calls to the API.
      *
-     * @param \Illuminate\Http\Request                   $request
+     * @param \Illuminate\Http\Request $request
      * @param \Illuminate\Validation\ValidationException $exception
      * @return \Illuminate\Http\JsonResponse
      */
@@ -159,16 +179,21 @@ class Handler extends ExceptionHandler
             return [str_replace('.', '_', $field) => $cleaned];
         })->toArray();
 
-        $errors = collect($exception->errors())->map(function ($errors, $field) use ($codes) {
+        $errors = collect($exception->errors())->map(function ($errors, $field) use ($codes, $exception) {
             $response = [];
             foreach ($errors as $key => $error) {
-                $response[] = [
-                    'code' => str_replace(self::PTERODACTYL_RULE_STRING, 'p_', array_get(
+                $meta = [
+                    'source_field' => $field,
+                    'rule' => str_replace(self::PTERODACTYL_RULE_STRING, 'p_', array_get(
                         $codes, str_replace('.', '_', $field) . '.' . $key
                     )),
-                    'detail' => $error,
-                    'source' => ['field' => $field],
                 ];
+
+                $converted = self::convertToArray($exception)['errors'][0];
+                $converted['detail'] = $error;
+                $converted['meta'] = is_array($converted['meta'] ?? null) ? array_merge($converted['meta'], $meta) : $meta;
+
+                $response[] = $converted;
             }
 
             return $response;
@@ -182,17 +207,28 @@ class Handler extends ExceptionHandler
     /**
      * Return the exception as a JSONAPI representation for use on API requests.
      *
-     * @param \Exception $exception
-     * @param array      $override
+     * @param \Throwable $exception
+     * @param array $override
      * @return array
      */
-    public static function convertToArray(Exception $exception, array $override = []): array
+    public static function convertToArray(Throwable $exception, array $override = []): array
     {
         $error = [
             'code' => class_basename($exception),
-            'status' => method_exists($exception, 'getStatusCode') ? strval($exception->getStatusCode()) : '500',
-            'detail' => 'An error was encountered while processing this request.',
+            'status' => method_exists($exception, 'getStatusCode')
+                ? strval($exception->getStatusCode())
+                : ($exception instanceof ValidationException ? '422' : '500'),
+            'detail' => $exception instanceof HttpExceptionInterface
+                ? $exception->getMessage()
+                : 'An unexpected error was encountered while processing this request, please try again.',
         ];
+
+        if ($exception instanceof ModelNotFoundException || $exception->getPrevious() instanceof ModelNotFoundException) {
+            // Show a nicer error message compared to the standard "No query results for model"
+            // response that is normally returned. If we are in debug mode this will get overwritten
+            // with a more specific error message to help narrow down things.
+            $error['detail'] = 'The requested resource could not be found on the server.';
+        }
 
         if (config('app.debug')) {
             $error = array_merge($error, [
@@ -224,14 +260,14 @@ class Handler extends ExceptionHandler
     /**
      * Convert an authentication exception into an unauthenticated response.
      *
-     * @param \Illuminate\Http\Request                 $request
+     * @param \Illuminate\Http\Request $request
      * @param \Illuminate\Auth\AuthenticationException $exception
      * @return \Illuminate\Http\Response
      */
     protected function unauthenticated($request, AuthenticationException $exception)
     {
         if ($request->expectsJson()) {
-            return response()->json(['error' => 'Unauthenticated.'], 401);
+            return response()->json(self::convertToArray($exception), 401);
         }
 
         return redirect()->guest(route('auth.login'));
@@ -241,10 +277,10 @@ class Handler extends ExceptionHandler
      * Converts an exception into an array to render in the response. Overrides
      * Laravel's built-in converter to output as a JSONAPI spec compliant object.
      *
-     * @param \Exception $exception
+     * @param \Throwable $exception
      * @return array
      */
-    protected function convertExceptionToArray(Exception $exception)
+    protected function convertExceptionToArray(Throwable $exception)
     {
         return self::convertToArray($exception);
     }

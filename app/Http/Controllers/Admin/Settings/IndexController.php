@@ -39,10 +39,10 @@ class IndexController extends Controller
     /**
      * IndexController constructor.
      *
-     * @param \Prologue\Alerts\AlertsMessageBag                             $alert
-     * @param \Illuminate\Contracts\Console\Kernel                          $kernel
+     * @param \Prologue\Alerts\AlertsMessageBag $alert
+     * @param \Illuminate\Contracts\Console\Kernel $kernel
      * @param \Pterodactyl\Contracts\Repository\SettingsRepositoryInterface $settings
-     * @param \Pterodactyl\Services\Helpers\SoftwareVersionService          $versionService
+     * @param \Pterodactyl\Services\Helpers\SoftwareVersionService $versionService
      */
     public function __construct(
         AlertsMessageBag $alert,
@@ -74,6 +74,8 @@ class IndexController extends Controller
      *
      * @param \Pterodactyl\Http\Requests\Admin\Settings\BaseSettingsFormRequest $request
      * @return \Illuminate\Http\RedirectResponse
+     * @throws \Pterodactyl\Exceptions\Model\DataValidationException
+     * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
     public function update(BaseSettingsFormRequest $request): RedirectResponse
     {

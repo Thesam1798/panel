@@ -7,9 +7,9 @@ use PHPUnit\Framework\Assert;
 use Pterodactyl\Models\ApiKey;
 use Pterodactyl\Services\Acl\Api\AdminAcl;
 use Tests\Traits\Integration\CreatesTestModels;
-use Tests\Traits\IntegrationJsonRequestAssertions;
 use Pterodactyl\Tests\Integration\IntegrationTestCase;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\Traits\Http\IntegrationJsonRequestAssertions;
 use Pterodactyl\Transformers\Api\Application\BaseTransformer;
 use Pterodactyl\Transformers\Api\Client\BaseClientTransformer;
 
@@ -31,7 +31,7 @@ abstract class ApplicationApiIntegrationTestCase extends IntegrationTestCase
      * Bootstrap application API tests. Creates a default admin user and associated API key
      * and also sets some default headers required for accessing the API.
      */
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -118,7 +118,6 @@ abstract class ApplicationApiIntegrationTestCase extends IntegrationTestCase
             'r_eggs' => AdminAcl::READ | AdminAcl::WRITE,
             'r_database_hosts' => AdminAcl::READ | AdminAcl::WRITE,
             'r_server_databases' => AdminAcl::READ | AdminAcl::WRITE,
-            'r_packs' => AdminAcl::READ | AdminAcl::WRITE,
         ], $permissions));
     }
 

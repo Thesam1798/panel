@@ -29,7 +29,7 @@ interface RepositoryInterface
     public function getBuilder();
 
     /**
-     * Returns the colummns to be selected or returned by the query.
+     * Returns the columns to be selected or returned by the query.
      *
      * @return mixed
      */
@@ -59,7 +59,7 @@ interface RepositoryInterface
     public function withFreshModel();
 
     /**
-     * Set wether or not the repository should return a fresh model
+     * Set whether or not the repository should return a fresh model
      * when changes are committed.
      *
      * @param bool $fresh
@@ -71,8 +71,8 @@ interface RepositoryInterface
      * Create a new model instance and persist it to the database.
      *
      * @param array $fields
-     * @param bool  $validate
-     * @param bool  $force
+     * @param bool $validate
+     * @param bool $force
      * @return mixed
      *
      * @throws \Pterodactyl\Exceptions\Model\DataValidationException
@@ -134,10 +134,10 @@ interface RepositoryInterface
     /**
      * Update a given ID with the passed array of fields.
      *
-     * @param int   $id
+     * @param int $id
      * @param array $fields
-     * @param bool  $validate
-     * @param bool  $force
+     * @param bool $validate
+     * @param bool $force
      * @return mixed
      *
      * @throws \Pterodactyl\Exceptions\Model\DataValidationException
@@ -150,8 +150,8 @@ interface RepositoryInterface
      * This does not perform any model data validation.
      *
      * @param string $column
-     * @param array  $values
-     * @param array  $fields
+     * @param array $values
+     * @param array $fields
      * @return int
      */
     public function updateWhereIn(string $column, array $values, array $fields): int;
@@ -161,8 +161,8 @@ interface RepositoryInterface
      *
      * @param array $where
      * @param array $fields
-     * @param bool  $validate
-     * @param bool  $force
+     * @param bool $validate
+     * @param bool $force
      * @return mixed
      *
      * @throws \Pterodactyl\Exceptions\Model\DataValidationException
@@ -200,4 +200,11 @@ interface RepositoryInterface
      * @return bool
      */
     public function insertIgnore(array $values): bool;
+
+    /**
+     * Get the amount of entries in the database.
+     *
+     * @return int
+     */
+    public function count(): int;
 }
